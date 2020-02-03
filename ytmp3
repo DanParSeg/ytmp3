@@ -1,0 +1,45 @@
+#!/bin/bash
+
+FILE="videos.txt"
+DIRECTORY_NAME='songs'
+PYTHON_SCRIPT=$(pwd)/"youtube2mp3.py"
+TITLE=' t:'
+AUTHOR=' a:'
+
+rm -r songs
+
+if ! mkdir $DIRECTORY_NAME; then
+  echo -e "\e[1m\e[31m""borra la carpeta $DIRECTORY_NAME antes de continuar""\e[0m" 1>&2
+  exit 1;
+fi
+
+mkdir $DIRECTORY_NAME/temp;
+
+cat $FILE | while read line; do
+  url=$(echo $line|awk '{print $1}')
+  title=$(echo $line|awk -F "$TITLE" '{print $2}'|awk -F "$AUTHOR" '{print $1}')
+  author=$(echo $line|awk -F "$TITLE" '{print $2}'|awk -F "$AUTHOR" '{print $2}')
+
+  cd $(pwd)/"$DIRECTORY_NAME"/temp
+  echo -e "\e[1m\e[32m""descargando $title de $author"
+  echo -e "url: $url""\e[0m"
+  python3 $PYTHON_SCRIPT $url
+  
+  mp3file=$(ls | head -1)
+  cp "$mp3file" "../$title.mp3"
+  rm "$mp3file"
+  cd ..
+
+  id3v2 -t "$title" "$title.mp3"
+  id3v2 -a "$author" "$title.mp3"
+  echo -e "\e[1m"
+  id3v2 -l "$title.mp3" | head -2
+  echo -e "\e[0m"
+  cd ..
+
+done
+
+rm -r $DIRECTORY_NAME/temp
+echo -e "\e[1m\e[32m""descargadas" $(ls $DIRECTORY_NAME | wc -l) "canciones""\e[0m"
+
+exit 0
